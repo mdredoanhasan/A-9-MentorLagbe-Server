@@ -552,18 +552,18 @@ app.get("/api/admin/tuitions", authenticate, requireRole("admin"), async (req, r
 });
 
 // Admin approval or rejection of a tuition.
-app.patch("/api/admin/tuitions/:id/approval", authenticate, requireRole("admin"), async (req, res) => {
-  const { approvalStatus } = req.body;
-  if (!["approved", "rejected"].includes(approvalStatus)) {
-    throw new HttpError(400, "Approval status must be approved or rejected.");
-  }
-  const result = await tuitionsCollection.updateOne(
-    { _id: documentId(req.params.id) },
-    { $set: { approvalStatus, updatedAt: new Date() } },
-  );
-  if (!result.matchedCount) throw new HttpError(404, "Tuition not found.");
-  res.json({ message: "Tuition approval updated." });
-});
+// app.patch("/api/admin/tuitions/:id/approval", authenticate, requireRole("admin"), async (req, res) => {
+//   const { approvalStatus } = req.body;
+//   if (!["approved", "rejected"].includes(approvalStatus)) {
+//     throw new HttpError(400, "Approval status must be approved or rejected.");
+//   }
+//   const result = await tuitionsCollection.updateOne(
+//     { _id: documentId(req.params.id) },
+//     { $set: { approvalStatus, updatedAt: new Date() } },
+//   );
+//   if (!result.matchedCount) throw new HttpError(404, "Tuition not found.");
+//   res.json({ message: "Tuition approval updated." });
+// });
 
 // Admin payment and revenue transaction history.
 app.get("/api/admin/payments", authenticate, requireRole("admin"), async (req, res) => {
