@@ -532,18 +532,18 @@ app.get("/api/admin/users", authenticate, requireRole("admin"), async (req, res)
 });
 
 // Admin role management.
-app.patch("/api/admin/users/:id/role", authenticate, requireRole("admin"), async (req, res) => {
-  const { role } = req.body;
-  if (!["student", "tutor", "mentor", "admin"].includes(role)) {
-    throw new HttpError(400, "Role must be student, tutor, or admin.");
-  }
-  const normalizedRole = normalizeRole(role);
-  const userId = documentId(req.params.id);
-  if (String(userId) === req.user.id) throw new HttpError(400, "You cannot change your own role.");
-  const result = await usersCollection.updateOne({ _id: userId }, { $set: { role: normalizedRole } });
-  if (!result.matchedCount) throw new HttpError(404, "User not found.");
-  res.json({ message: "Role updated." });
-});
+// app.patch("/api/admin/users/:id/role", authenticate, requireRole("admin"), async (req, res) => {
+//   const { role } = req.body;
+//   if (!["student", "tutor", "mentor", "admin"].includes(role)) {
+//     throw new HttpError(400, "Role must be student, tutor, or admin.");
+//   }
+//   const normalizedRole = normalizeRole(role);
+//   const userId = documentId(req.params.id);
+//   if (String(userId) === req.user.id) throw new HttpError(400, "You cannot change your own role.");
+//   const result = await usersCollection.updateOne({ _id: userId }, { $set: { role: normalizedRole } });
+//   if (!result.matchedCount) throw new HttpError(404, "User not found.");
+//   res.json({ message: "Role updated." });
+// });
 
 // Admin list of every tuition, including pending and rejected entries.
 app.get("/api/admin/tuitions", authenticate, requireRole("admin"), async (req, res) => {
