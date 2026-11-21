@@ -25,12 +25,12 @@ const applicationsCollection = database.collection("applications");
 const paymentsCollection = database.collection("payments");
 
 // Convert expected API failures into HTTP responses with status codes.
-// class HttpError extends Error {
-//   constructor(status, message) {
-//     super(message);
-//     this.status = status;
-//   }
-// }
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
 
 // Parse JSON bodies and allow CORS only from configured client origins.
 app.use(express.json());
@@ -611,3 +611,5 @@ try {
   console.error("Error connecting to MongoDB:", error);
   process.exit(1);
 }
+
+export default app;
