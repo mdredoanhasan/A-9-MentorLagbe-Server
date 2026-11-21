@@ -1,6 +1,7 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { MongoClient, ObjectId } from "mongodb";
 
 // Server and database configuration.
@@ -161,35 +162,41 @@ const mapApplication = (application) => {
   };
 };
 
-// Authenticate requests by asking Better Auth to verify the session cookie.
-const authenticate = (req, res, next) => {
-  const cookie = req.headers.cookie;
-  if (!cookie) {
-    res.status(401).json({ message: "Please sign in to continue." });
-    return;
-  }
+// Better Auth public keys (served by the client site), used to verify tokens.
+const jwks = createRemoteJWKSet(new URL(`${authBaseUrl}/api/auth/jwks`));
 
-  fetch(`${authBaseUrl}/api/auth/get-session`, {
-    headers: { cookie, accept: "application/json" },
-    signal: AbortSignal.timeout(5000),
-  })
-    .then(async (response) => {
-      if (!response.ok) {
-        throw new HttpError(502, "Could not verify the sign-in session.");
-      }
-      const session = await response.json();
-      if (!session?.user?.id) {
-        res.status(401).json({ message: "Please sign in to continue." });
-        return;
-      }
-      req.user = {
-        ...session.user,
-        id: String(session.user.id),
-        role: normalizeRole(session.user.role),
-      };
-      next();
-    })
-    .catch(next);
+// Authenticate requests by verifying the Bearer token, then load the user and role from the database.
+const authenticate = async (req, res, next) => {
+  try {
+    const header = req.headers.authorization || "";
+    const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+    if (!token) {
+      res.status(401).json({ message: "Please sign in to continue." });
+      return;
+    }
+
+    const { payload } = await jwtVerify(token, jwks);
+
+    const filter = payload.email
+      ? { email: payload.email }
+      : { _id: documentId(String(payload.sub)) };
+    const user = await usersCollection.findOne(filter);
+    if (!user) {
+      res.status(401).json({ message: "Please sign in to continue." });
+      return;
+    }
+
+    req.user = {
+      id: String(user._id),
+      name: user.name,
+      email: user.email,
+      role: normalizeRole(user.role),
+    };
+    next();
+  } catch (error) {
+    console.error("Token verification failed:", error.code || error.name, error.message);
+    res.status(401).json({ message: "Please sign in to continue." });
+  }
 };
 
 // Middleware factory that limits a route to a specific user role.
