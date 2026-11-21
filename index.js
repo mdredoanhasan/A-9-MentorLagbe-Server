@@ -33,25 +33,25 @@ class HttpError extends Error {
 }
 
 // Parse JSON bodies and allow CORS only from configured client origins.
-app.use(express.json());
-app.use((req, res, next) => {
-  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
-    req.body = {};
-  }
-  next();
-});
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-      callback(new HttpError(403, "Origin is not allowed."));
-    },
-    credentials: true,
-  }),
-);
+// app.use(express.json());
+// app.use((req, res, next) => {
+//   if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+//     req.body = {};
+//   }
+//   next();
+// });
+// app.use(
+//   cors({
+//     origin(origin, callback) {
+//       if (!origin || allowedOrigins.includes(origin)) {
+//         callback(null, true);
+//         return;
+//       }
+//       callback(new HttpError(403, "Origin is not allowed."));
+//     },
+//     credentials: true,
+//   }),
+// );
 
 // Normalize legacy "mentor" role values to the current "tutor" role.
 const normalizeRole = (role) => {
