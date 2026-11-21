@@ -61,12 +61,12 @@ const normalizeRole = (role) => {
 };
 
 // Validate MongoDB document IDs before database queries.
-// const documentId = (value) => {
-//   if (typeof value !== "string" || !/^[\da-f]{24}$/i.test(value)) {
-//     throw new HttpError(400, "Invalid document ID.");
-//   }
-//   return new ObjectId(value);
-// };
+const documentId = (value) => {
+  if (typeof value !== "string" || !/^[\da-f]{24}$/i.test(value)) {
+    throw new HttpError(400, "Invalid document ID.");
+  }
+  return new ObjectId(value);
+};
 
 // Validate required text fields and enforce a maximum length.
 const requireText = (value, field, maximumLength = 2000) => {
