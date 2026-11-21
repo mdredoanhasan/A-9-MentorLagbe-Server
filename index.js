@@ -566,39 +566,39 @@ app.patch("/api/admin/tuitions/:id/approval", authenticate, requireRole("admin")
 });
 
 // Admin payment and revenue transaction history.
-app.get("/api/admin/payments", authenticate, requireRole("admin"), async (req, res) => {
-  const payments = await paymentsCollection.find().sort({ paidAt: -1 }).toArray();
-  res.json(
-    payments.map((payment) => ({
-      _id: String(payment._id),
-      userName: payment.userName,
-      email: payment.email,
-      role: normalizeRole(payment.role),
-      plan: payment.plan,
-      amount: payment.amount,
-      transactionId: payment.transactionId,
-      paidAt: payment.paidAt,
-    })),
-  );
-});
+// app.get("/api/admin/payments", authenticate, requireRole("admin"), async (req, res) => {
+//   const payments = await paymentsCollection.find().sort({ paidAt: -1 }).toArray();
+//   res.json(
+//     payments.map((payment) => ({
+//       _id: String(payment._id),
+//       userName: payment.userName,
+//       email: payment.email,
+//       role: normalizeRole(payment.role),
+//       plan: payment.plan,
+//       amount: payment.amount,
+//       transactionId: payment.transactionId,
+//       paidAt: payment.paidAt,
+//     })),
+//   );
+// });
 
 // Central error handler for validation, authentication, database, and unexpected errors.
-// app.use((error, req, res, next) => {
-//   if (res.headersSent) {
-//     next(error);
-//     return;
-//   }
-//   if (error instanceof HttpError) {
-//     res.status(error.status).json({ message: error.message });
-//     return;
-//   }
-//   if (error.type === "entity.parse.failed") {
-//     res.status(400).json({ message: "Request body must be valid JSON." });
-//     return;
-//   }
-//   console.error("API request failed:", error);
-//   res.status(500).json({ message: "An unexpected server error occurred." });
-// });
+app.use((error, req, res, next) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+  if (error instanceof HttpError) {
+    res.status(error.status).json({ message: error.message });
+    return;
+  }
+  if (error.type === "entity.parse.failed") {
+    res.status(400).json({ message: "Request body must be valid JSON." });
+    return;
+  }
+  console.error("API request failed:", error);
+  res.status(500).json({ message: "An unexpected server error occurred." });
+});
 
 // Start MongoDB, then begin listening for HTTP requests.
 try {
