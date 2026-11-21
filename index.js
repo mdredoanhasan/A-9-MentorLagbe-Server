@@ -54,11 +54,11 @@ app.use(
 );
 
 // Normalize legacy "mentor" role values to the current "tutor" role.
-// const normalizeRole = (role) => {
-//   if (role === "mentor" || role === "tutor") return "tutor";
-//   if (role === "admin") return "admin";
-//   return "student";
-// };
+const normalizeRole = (role) => {
+  if (role === "mentor" || role === "tutor") return "tutor";
+  if (role === "admin") return "admin";
+  return "student";
+};
 
 // Validate MongoDB document IDs before database queries.
 const documentId = (value) => {
@@ -583,22 +583,22 @@ app.get("/api/admin/payments", authenticate, requireRole("admin"), async (req, r
 });
 
 // Central error handler for validation, authentication, database, and unexpected errors.
-app.use((error, req, res, next) => {
-  if (res.headersSent) {
-    next(error);
-    return;
-  }
-  if (error instanceof HttpError) {
-    res.status(error.status).json({ message: error.message });
-    return;
-  }
-  if (error.type === "entity.parse.failed") {
-    res.status(400).json({ message: "Request body must be valid JSON." });
-    return;
-  }
-  console.error("API request failed:", error);
-  res.status(500).json({ message: "An unexpected server error occurred." });
-});
+// app.use((error, req, res, next) => {
+//   if (res.headersSent) {
+//     next(error);
+//     return;
+//   }
+//   if (error instanceof HttpError) {
+//     res.status(error.status).json({ message: error.message });
+//     return;
+//   }
+//   if (error.type === "entity.parse.failed") {
+//     res.status(400).json({ message: "Request body must be valid JSON." });
+//     return;
+//   }
+//   console.error("API request failed:", error);
+//   res.status(500).json({ message: "An unexpected server error occurred." });
+// });
 
 // Start MongoDB, then begin listening for HTTP requests.
 try {
