@@ -566,21 +566,21 @@ app.patch("/api/admin/tuitions/:id/approval", authenticate, requireRole("admin")
 });
 
 // Admin payment and revenue transaction history.
-// app.get("/api/admin/payments", authenticate, requireRole("admin"), async (req, res) => {
-//   const payments = await paymentsCollection.find().sort({ paidAt: -1 }).toArray();
-//   res.json(
-//     payments.map((payment) => ({
-//       _id: String(payment._id),
-//       userName: payment.userName,
-//       email: payment.email,
-//       role: normalizeRole(payment.role),
-//       plan: payment.plan,
-//       amount: payment.amount,
-//       transactionId: payment.transactionId,
-//       paidAt: payment.paidAt,
-//     })),
-//   );
-// });
+app.get("/api/admin/payments", authenticate, requireRole("admin"), async (req, res) => {
+  const payments = await paymentsCollection.find().sort({ paidAt: -1 }).toArray();
+  res.json(
+    payments.map((payment) => ({
+      _id: String(payment._id),
+      userName: payment.userName,
+      email: payment.email,
+      role: normalizeRole(payment.role),
+      plan: payment.plan,
+      amount: payment.amount,
+      transactionId: payment.transactionId,
+      paidAt: payment.paidAt,
+    })),
+  );
+});
 
 // Central error handler for validation, authentication, database, and unexpected errors.
 app.use((error, req, res, next) => {
