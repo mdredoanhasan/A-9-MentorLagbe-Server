@@ -600,7 +600,7 @@ app.get(
       );
     }
 
-    const plan = user?.plan === "pro" ? "pro" : "free";
+    const plan = user?.plan === "pro" ? 'pro' : "free";
     res.json({
       bookmarks,
       count: bookmarks.length,
