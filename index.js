@@ -573,21 +573,40 @@ app.get(
   async (req, res) => {
     const user = await usersCollection.findOne(
       { _id: documentId(req.user.id) },
-      { projection: { savedTuitions: 1 } },
+      { projection: { savedTuitions: 1, plan: 1 } },
     );
-    const ids = (user?.savedTuitions ?? [])
-      .filter((id) => /^[\da-f]{24}$/i.test(id))
-      .map((id) => new ObjectId(id));
-    const tuitions = ids.length
+    const savedIds = Array.isArray(user?.savedTuitions)
+      ? user.savedTuitions.filter((id) => typeof id === "string")
+      : [];
+    const validIds = savedIds.filter((id) => /^[\da-f]{24}$/i.test(id));
+    const tuitions = validIds.length
       ? await tuitionsCollection
-          .find({
-            _id: { $in: ids },
-            approvalStatus: "approved",
-            status: "active",
-          })
+          .find({ _id: { $in: validIds.map((id) => new ObjectId(id)) } })
           .toArray()
       : [];
-    res.json(tuitions.map((tuition) => mapTuition(tuition, false)));
+    const tuitionById = new Map(
+      tuitions.map((tuition) => [String(tuition._id), tuition]),
+    );
+    const bookmarks = validIds
+      .map((id) => tuitionById.get(id))
+      .filter(Boolean)
+      .map((tuition) => mapTuition(tuition, false));
+    const foundIds = new Set(bookmarks.map(({ _id }) => _id));
+    const staleIds = savedIds.filter((id) => !foundIds.has(id));
+    if (staleIds.length) {
+      await usersCollection.updateOne(
+        { _id: documentId(req.user.id) },
+        { $pull: { savedTuitions: { $in: staleIds } } },
+      );
+    }
+
+    const plan = user?.plan === "pro" ? "pro" : "free";
+    res.json({
+      bookmarks,
+      count: bookmarks.length,
+      limit: plan === "pro" ? null : 5,
+      plan,
+    });
   },
 );
 
@@ -598,12 +617,38 @@ app.post(
   requireRole("student"),
   async (req, res) => {
     const tuitionId = documentId(req.params.id);
-    const tuition = await tuitionsCollection.findOne({ _id: tuitionId });
-    if (!tuition) throw new HttpError(404, "Tuition not found.");
-    await usersCollection.updateOne(
-      { _id: documentId(req.user.id) },
+    const tuition = await tuitionsCollection.findOne({
+      _id: tuitionId,
+      approvalStatus: "approved",
+      status: "active",
+    });
+    if (!tuition) {
+      throw new HttpError(404, "Active approved tuition not found.");
+    }
+
+    const userId = documentId(req.user.id);
+    const result = await usersCollection.updateOne(
+      {
+        _id: userId,
+        $or: [
+          { savedTuitions: String(tuitionId) },
+          { plan: "pro" },
+          {
+            $expr: {
+              $lt: [
+                { $size: { $ifNull: ["$savedTuitions", []] } },
+                5,
+              ],
+            },
+          },
+        ],
+      },
       { $addToSet: { savedTuitions: String(tuitionId) } },
     );
+
+    if (!result.matchedCount) {
+      throw new HttpError(403, "Free students can save up to 5 tuitions.");
+    }
     res.status(201).json({ message: "Tuition saved." });
   },
 );
