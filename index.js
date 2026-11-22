@@ -24,6 +24,7 @@ const usersCollection = database.collection("user");
 const tuitionsCollection = database.collection("tuitions");
 const applicationsCollection = database.collection("applications");
 const paymentsCollection = database.collection("payments");
+const freeBookmarkLimit = 5;
 
 // Convert expected API failures into HTTP responses with status codes.
 class HttpError extends Error {
@@ -421,6 +422,97 @@ app.post("/api/applications", authenticate, requireRole("student"), async (req, 
   };
   const result = await applicationsCollection.insertOne(application);
   res.status(201).json({ _id: String(result.insertedId) });
+});
+
+// Student bookmarks; saved tuition IDs are stored on each user document.
+app.get("/api/student/bookmarks", authenticate, requireRole("student"), async (req, res) => {
+  const studentId = documentId(req.user.id);
+  const user = await usersCollection.findOne(
+    { _id: studentId },
+    { projection: { plan: 1, bookmarks: 1 } },
+  );
+  if (!user) throw new HttpError(404, "Student account not found.");
+
+  const plan = user.plan === "pro" ? "pro" : "free";
+  const bookmarkIds = Array.isArray(user.bookmarks)
+    ? [...new Set(user.bookmarks.filter((id) => typeof id === "string" && /^[\da-f]{24}$/i.test(id)))]
+    : [];
+  const tuitions = bookmarkIds.length
+    ? await tuitionsCollection
+        .find({ _id: { $in: bookmarkIds.map((id) => new ObjectId(id)) } })
+        .toArray()
+    : [];
+  const tuitionById = new Map(tuitions.map((tuition) => [String(tuition._id), tuition]));
+  const bookmarks = bookmarkIds
+    .map((id) => tuitionById.get(id))
+    .filter((tuition) => tuition !== undefined);
+
+  res.json({
+    bookmarks: bookmarks.map((tuition) => mapTuition(tuition, false)),
+    count: bookmarks.length,
+    limit: plan === "pro" ? null : freeBookmarkLimit,
+    plan,
+  });
+});
+
+app.post("/api/student/bookmarks/:id", authenticate, requireRole("student"), async (req, res) => {
+  const tuitionId = documentId(req.params.id);
+  const tuition = await tuitionsCollection.findOne({
+    _id: tuitionId,
+    approvalStatus: "approved",
+    status: "active",
+  });
+  if (!tuition) throw new HttpError(404, "This tuition is not available for bookmarking.");
+
+  const studentId = documentId(req.user.id);
+  const tuitionIdString = String(tuitionId);
+  const result = await usersCollection.updateOne(
+    {
+      _id: studentId,
+      bookmarks: { $ne: tuitionIdString },
+      $or: [
+        { plan: "pro" },
+        {
+          plan: { $ne: "pro" },
+          $expr: {
+            $lt: [
+              { $size: { $ifNull: ["$bookmarks", []] } },
+              freeBookmarkLimit,
+            ],
+          },
+        },
+      ],
+    },
+    { $addToSet: { bookmarks: tuitionIdString } },
+  );
+
+  if (!result.matchedCount) {
+    const user = await usersCollection.findOne(
+      { _id: studentId },
+      { projection: { bookmarks: 1, plan: 1 } },
+    );
+    if (!user) throw new HttpError(404, "Student account not found.");
+    if (Array.isArray(user.bookmarks) && user.bookmarks.includes(tuitionIdString)) {
+      res.json({ message: "Tuition is already bookmarked." });
+      return;
+    }
+    throw new HttpError(
+      403,
+      `Free plan students can save up to ${freeBookmarkLimit} tuitions.`,
+    );
+  }
+
+  res.status(201).json({ message: "Tuition bookmarked." });
+});
+
+app.delete("/api/student/bookmarks/:id", authenticate, requireRole("student"), async (req, res) => {
+  const tuitionIdString = String(documentId(req.params.id));
+  const result = await usersCollection.updateOne(
+    { _id: documentId(req.user.id) },
+    { $pull: { bookmarks: tuitionIdString } },
+  );
+  if (!result.matchedCount) throw new HttpError(404, "Student account not found.");
+  res.json({ message: "Bookmark removed." });
 });
 
 // Student application history.

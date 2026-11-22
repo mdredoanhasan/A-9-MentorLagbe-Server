@@ -26,7 +26,8 @@ Better Auth and allows credentialed requests only from the configured origins.
 - Public: `GET /api/public/stats` (tutor, student, and active approved tuition counts)
 - Tutor: `GET /api/tutor/stats`, `/api/tutor/tuitions`, `/api/tutor/applicants`
 - Tutor: `POST /api/tuitions`, `PATCH /api/tuitions/:id`, `DELETE /api/tuitions/:id`
-- Student: `GET /api/student/stats`, `/api/student/applications`
+- Student: `GET /api/student/stats`, `/api/student/applications`, `/api/student/bookmarks`
+- Student: `POST /api/student/bookmarks/:id`, `DELETE /api/student/bookmarks/:id`
 - Student: `POST /api/applications`, `DELETE /api/applications/:id`
 - Tutor: `PATCH /api/applications/:id`
 - Admin: `GET /api/admin/stats`, `/api/admin/users`, `/api/admin/tuitions`, `/api/admin/payments`
