@@ -600,7 +600,7 @@ app.get(
       );
     }
 
-    const plan = user?.plan === "pro" ? 'pro' : "free";
+    const plan = user?.plan === "pro" ? "pro" : "free";
     res.json({
       bookmarks,
       count: bookmarks.length,
@@ -635,10 +635,7 @@ app.post(
           { plan: "pro" },
           {
             $expr: {
-              $lt: [
-                { $size: { $ifNull: ["$savedTuitions", []] } },
-                5,
-              ],
+              $lt: [{ $size: { $ifNull: ["$savedTuitions", []] } }, 5],
             },
           },
         ],
